@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard – Atelier de Carreira | AGETRHA</title>
+    <style>
+        :root {
+            --primary: #0a2f44;
+            --primary-light: #0f4a6b;
+            --accent: #d49b3b;
+            --accent-hover: #b8832a;
+            --bg: #f4f6f8;
+            --white: #ffffff;
+            --text: #1e1e1e;
+            --text-light: #555;
+            --border: #d1d5db;
+            --success: #1e7a4b;
+            --danger: #c0392b;
+            --warning: #e67e22;
+            --info: #2980b9;
+            --shadow: 0 6px 18px rgba(0,0,0,0.07);
+            --radius: 10px;
+            --font: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: var(--font);
+            background: #f0f2f5;
+            color: var(--text);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        .login-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .login-card {
+            background: white; padding: 2.5rem 2rem; border-radius: 16px;
+            text-align: center; width: 90%; max-width: 380px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+        }
+        .login-card .logo-circle {
+            width: 60px; height: 60px; border-radius: 50%;
+            background: var(--primary-light); margin: 0 auto 1rem;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: bold; font-size: 1.5rem;
+        }
+        .login-card h2 { margin-bottom: 0.3rem; color: var(--primary); }
+        .login-card p { font-size: 0.85rem; color: #666; margin-bottom: 1.5rem; }
+        .login-card input {
+            width: 100%; padding: 0.8rem 1rem; border: 2px solid var(--border);
+            border-radius: 30px; font-size: 1rem; text-align: center;
+            margin-bottom: 1rem; transition: 0.2s;
+        }
+        .login-card input:focus {
+            border-color: var(--accent); outline: none;
+            box-shadow: 0 0 0 3px rgba(212,155,59,0.2);
+        }
+        .login-card button {
+            width: 100%; padding: 0.8rem; background: var(--accent);
+            color: #0a2f44; font-weight: 700; border: none;
+            border-radius: 30px; cursor: pointer; font-size: 1rem; transition: 0.2s;
+        }
+        .login-card button:hover { background: var(--accent-hover); }
+        .login-error { color: var(--danger); font-size: 0.85rem; margin-top: 0.5rem; display: none; }
+
+        .dashboard { display: none; }
+        .dashboard.active { display: block; }
+
+        .top-bar {
+            background: var(--primary); color: white; padding: 1rem 2rem;
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .top-bar .brand { display: flex; align-items: center; gap: 0.8rem; }
+        .top-bar .brand .logo-circle {
+            width: 50px; height: 50px; border-radius: 50%;
+            background: white; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; /* garante que a imagem não escape */
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
+        }
+        .top-bar .brand .logo-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* ajusta a imagem sem distorcer */
+        }
+        .top-bar .brand h1 { font-size: 1.3rem; font-weight: 700; }
+        .top-bar .stats { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .stat-box {
+            background: rgba(255,255,255,0.15); padding: 0.5rem 1.2rem;
+            border-radius: 30px; text-align: center; font-size: 0.9rem;
+        }
+        .stat-box .num { font-size: 1.4rem; font-weight: 700; display: block; }
+        .stat-box.aprovado .num { color: #2ecc71; }
+        .stat-box.vagas .num { color: var(--accent); }
+        .btn-logout {
+            background: rgba(255,255,255,0.2); color: white;
+            border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1.3rem;
+            border-radius: 30px; cursor: pointer; font-weight: 600;
+        }
+
+        .filters-bar {
+            background: white; padding: 1rem 2rem; display: flex;
+            gap: 1rem; flex-wrap: wrap; align-items: center;
+            border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10;
+        }
+        .filters-bar select, .filters-bar input {
+            padding: 0.5rem 1rem; border: 1px solid var(--border);
+            border-radius: 20px; font-family: var(--font); font-size: 0.9rem;
+        }
+        .search-wrapper { flex: 1; min-width: 200px; position: relative; }
+        .search-wrapper input { width: 100%; padding-right: 2.2rem; }
+        .search-wrapper .clear-search {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; font-size: 1.2rem; cursor: pointer;
+            color: #999; display: none;
+        }
+        .search-wrapper .clear-search.visible { display: block; }
+        .btn-refresh {
+            background: var(--primary-light); color: white; border: none;
+            padding: 0.5rem 1.2rem; border-radius: 20px; cursor: pointer;
+            font-weight: 600; font-size: 0.9rem;
+        }
+
+        .table-container { padding: 1.5rem 2rem; overflow-x: auto; }
+        table {
+            width: 100%; border-collapse: collapse; background: white;
+            border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+        }
+        thead { background: var(--primary); color: white; }
+        th {
+            padding: 0.9rem 1rem; text-align: left; font-size: 0.85rem;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        td { padding: 0.8rem 1rem; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; }
+        tbody tr:hover { background: #f8fafc; }
+        .estado-badge {
+            display: inline-block; padding: 0.3rem 0.8rem; border-radius: 20px;
+            font-size: 0.78rem; font-weight: 600; text-align: center; min-width: 85px;
+        }
+        .estado-pendente { background: #fef3c7; color: #92400e; }
+        .estado-aprovado { background: #d1fae5; color: #065f46; }
+        .estado-arquivado { background: #e5e7eb; color: #4b5563; }
+        .action-buttons { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+        .btn-sm {
+            padding: 0.3rem 0.7rem; font-size: 0.78rem; border-radius: 15px;
+            border: none; cursor: pointer; font-weight: 600; white-space: nowrap;
+        }
+        .btn-aprovar { background: #10b981; color: white; }
+        .btn-arquivar { background: #6b7280; color: white; }
+        .btn-detalhes { background: #3b82f6; color: white; }
+        .btn-pendente { background: #f59e0b; color: white; }
+        .empty-state { text-align: center; padding: 3rem; color: #999; }
+
+        .modal-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(2px);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: white; border-radius: 16px; padding: 2rem;
+            width: 90%; max-width: 550px; max-height: 85vh; overflow-y: auto;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+        }
+        .modal-card h3 { color: var(--primary); margin-bottom: 1rem; }
+        .modal-card .detail-row {
+            display: flex; justify-content: space-between; padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0; font-size: 0.9rem;
+        }
+        .modal-card .detail-row strong { min-width: 130px; }
+        .modal-card .btn-close {
+            background: #e5e7eb; border: none; padding: 0.5rem 1.5rem;
+            border-radius: 20px; cursor: pointer; font-weight: 600; margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .top-bar { padding: 1rem; }
+            .top-bar .brand .logo-circle { width: 40px; height: 40px; }
+            .filters-bar { padding: 1rem; }
+            .table-container { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+        <div class="logo-circle">🔐</div>
+        <h2>Dashboard</h2>
+        <p>Atelier de Carreira – AGETRHA</p>
+        <input type="password" id="senhaInput" placeholder="Digite a senha de acesso" autofocus>
+        <button id="btnLogin">Entrar</button>
+        <p class="login-error" id="loginError">Senha inválida ou conta inativa.</p>
+    </div>
+</div>
+
+<div class="dashboard" id="dashboard">
+    <div class="top-bar">
+        <div class="brand">
+            <div class="logo-circle">
+                <img src="https://i.postimg.cc/DyKZTbYq/Logotipo.jpg" alt="AGETRHA">
+            </div>
+            <h1>Gestão de Inscrições</h1>
+        </div>
+        <div class="stats">
+            <div class="stat-box"><span class="num" id="totalInscricoes">0</span> Total</div>
+            <div class="stat-box aprovado"><span class="num" id="totalAprovados">0</span> Aprovados</div>
+            <div class="stat-box vagas"><span class="num" id="vagasRestantes">40</span> Vagas restantes</div>
+        </div>
+        <button class="btn-logout" id="btnLogout">Sair</button>
+    </div>
+    <div class="filters-bar">
+        <select id="filtroEstado">
+            <option value="Todos">Todos os estados</option>
+            <option value="Pendente">Pendentes</option>
+            <option value="Aprovado">Aprovados</option>
+            <option value="Arquivado">Arquivados</option>
+        </select>
+        <div class="search-wrapper">
+            <input type="text" id="searchInput" placeholder="🔍 Pesquisar...">
+            <button class="clear-search" id="clearSearch" title="Limpar">✕</button>
+        </div>
+        <button class="btn-refresh" id="btnRefresh">🔄 Atualizar</button>
+    </div>
+    <div class="table-container">
+        <table><thead><tr><th>ID</th><th>Nome</th><th>Email</th><th>Telefone</th><th>Cidade</th><th>Situação</th><th>Estado</th><th>Ações</th></tr></thead>
+        <tbody id="tableBody"><tr><td colspan="8" class="empty-state">Carregando...</td></tr></tbody></table>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalDetalhes"><div class="modal-card" id="modalContent"></div></div>
+
+<script>
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbzGRL_JCvAeaugId0imm2i7Ni9Df0rWKfGo5fWpEevLA1O9Cb37urjYzsPekefAiTd1/exec';
+    const AUTH_URL = 'https://script.google.com/macros/s/AKfycbzc9vRx1oir4RtGDSklsQLLxmE7jBwNx-M_WnjuMQzpXu9hxF_NSvxIa87eHJDQpboUdQ/exec';
+
+    let token = sessionStorage.getItem('atelier_token') || '';
+    let todasInscricoes = [];
+    const LIMITE_VAGAS = 40;
+
+    // Elementos DOM
+    const loginOverlay = document.getElementById('loginOverlay');
+    const dashboard = document.getElementById('dashboard');
+    const loginError = document.getElementById('loginError');
+    const tableBody = document.getElementById('tableBody');
+    const modalDetalhes = document.getElementById('modalDetalhes');
+    const modalContent = document.getElementById('modalContent');
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearch');
+    const filtroEstado = document.getElementById('filtroEstado');
+    const btnRefresh = document.getElementById('btnRefresh');
+
+    // ========== AUTENTICAÇÃO ==========
+    async function fazerLogin(senha) {
+        loginError.style.display = 'none';
+        if (!senha) {
+            loginError.textContent = 'Digite a senha.';
+            loginError.style.display = 'block';
+            return;
+        }
+        const formData = new FormData();
+        formData.append('action', 'validateDashboardPassword');
+        formData.append('password', senha);
+        formData.append('department', 'Atelier');
+        try {
+            const resp = await fetch(AUTH_URL, { method: 'POST', body: formData });
+            const data = await resp.json();
+            if (data.valid) {
+                token = senha;
+                sessionStorage.setItem('atelier_token', token);
+                loginOverlay.style.display = 'none';
+                dashboard.classList.add('active');
+                carregarInscricoes();
+            } else {
+                loginError.textContent = data.message || 'Senha inválida.';
+                loginError.style.display = 'block';
+            }
+        } catch (e) {
+            loginError.textContent = 'Erro de conexão.';
+            loginError.style.display = 'block';
+        }
+    }
+
+    document.getElementById('btnLogin').addEventListener('click', () => {
+        fazerLogin(document.getElementById('senhaInput').value.trim());
+    });
+    document.getElementById('senhaInput').addEventListener('keypress', e => {
+        if (e.key === 'Enter') document.getElementById('btnLogin').click();
+    });
+    document.getElementById('btnLogout').addEventListener('click', () => {
+        sessionStorage.removeItem('atelier_token');
+        location.reload();
+    });
+    if (token) fazerLogin(token);
+
+    // ========== CARREGAR DADOS ==========
+    async function carregarInscricoes() {
+        tableBody.innerHTML = '<tr><td colspan="8" class="empty-state">Carregando...</td></tr>';
+        const formData = new FormData();
+        formData.append('action', 'listar');
+        formData.append('token', token);
+        try {
+            const resp = await fetch(GAS_URL, { method: 'POST', body: formData });
+            const data = await resp.json();
+            if (data.success) {
+                todasInscricoes = data.inscricoes || [];
+                atualizarEstatisticas();
+                aplicarFiltros();
+            } else {
+                tableBody.innerHTML = `<tr><td colspan="8" class="empty-state">${data.message || 'Erro'}</td></tr>`;
+            }
+        } catch (e) {
+            tableBody.innerHTML = '<tr><td colspan="8" class="empty-state">Erro de rede</td></tr>';
+        }
+    }
+
+    btnRefresh.addEventListener('click', carregarInscricoes);
+
+    function atualizarEstatisticas() {
+        document.getElementById('totalInscricoes').textContent = todasInscricoes.length;
+        const aprov = todasInscricoes.filter(i => i.estado === 'Aprovado').length;
+        document.getElementById('totalAprovados').textContent = aprov;
+        document.getElementById('vagasRestantes').textContent = Math.max(0, LIMITE_VAGAS - aprov);
+    }
+
+    // ========== FILTROS E PESQUISA (CORRIGIDO) ==========
+    function aplicarFiltros() {
+        const termo = searchInput.value.toLowerCase().trim();
+        const estado = filtroEstado.value;
+
+        clearSearchBtn.classList.toggle('visible', termo.length > 0);
+
+        let filtradas = todasInscricoes;
+
+        if (estado !== 'Todos') {
+            filtradas = filtradas.filter(i => i.estado === estado);
+        }
+
+        if (termo) {
+            filtradas = filtradas.filter(item =>
+                Object.values(item)
+                    .join(' ')
+                    .toLowerCase()
+                    .includes(termo)
+            );
+        }
+
+        renderizarTabela(filtradas);
+    }
+
+    function renderizarTabela(inscricoes) {
+        if (inscricoes.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="8" class="empty-state">📭 Nenhuma inscrição encontrada.</td></tr>';
+            return;
+        }
+        tableBody.innerHTML = inscricoes.map(insc => {
+            const idCurto = insc.id ? insc.id.substring(0,8) : '—';
+            const cls = `estado-${insc.estado.toLowerCase()}`;
+            let btns = '';
+            if (insc.estado === 'Pendente') {
+                btns += `<button class="btn-sm btn-aprovar" onclick="atualizarEstado('${insc.id}','Aprovado')">✅ Aprovar</button>`;
+                btns += `<button class="btn-sm btn-arquivar" onclick="atualizarEstado('${insc.id}','Arquivado')">📁 Arquivar</button>`;
+            } else if (insc.estado === 'Aprovado') {
+                btns += `<button class="btn-sm btn-pendente" onclick="atualizarEstado('${insc.id}','Pendente')">↩️ Reverter</button>`;
+                btns += `<button class="btn-sm btn-arquivar" onclick="atualizarEstado('${insc.id}','Arquivado')">📁 Arquivar</button>`;
+            } else {
+                btns += `<button class="btn-sm btn-pendente" onclick="atualizarEstado('${insc.id}','Pendente')">↩️ Restaurar</button>`;
+                btns += `<button class="btn-sm btn-aprovar" onclick="atualizarEstado('${insc.id}','Aprovado')">✅ Aprovar</button>`;
+            }
+            btns += `<button class="btn-sm btn-detalhes" onclick="mostrarDetalhes('${insc.id}')">🔍 Detalhes</button>`;
+            return `<tr>
+                <td><code>${idCurto}</code></td>
+                <td>${insc.nome}</td><td>${insc.email}</td><td>${insc.telefone}</td>
+                <td>${insc.cidade}</td><td>${insc.situacaoProfissional}</td>
+                <td><span class="estado-badge ${cls}">${insc.estado}</span></td>
+                <td><div class="action-buttons">${btns}</div></td>
+            </tr>`;
+        }).join('');
+    }
+
+    // Eventos da pesquisa
+    searchInput.addEventListener('input', aplicarFiltros);
+    filtroEstado.addEventListener('change', aplicarFiltros);
+    clearSearchBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        aplicarFiltros();
+    });
+
+    // ========== ATUALIZAR ESTADO ==========
+    async function atualizarEstado(id, novoEstado) {
+        if (!confirm(`Alterar estado para "${novoEstado}"?`)) return;
+        const formData = new FormData();
+        formData.append('action', 'atualizarEstado');
+        formData.append('token', token);
+        formData.append('id', id);
+        formData.append('estado', novoEstado);
+        try {
+            const resp = await fetch(GAS_URL, { method: 'POST', body: formData });
+            const data = await resp.json();
+            if (data.success) {
+                const insc = todasInscricoes.find(i => i.id === id);
+                if (insc) insc.estado = novoEstado;
+                atualizarEstatisticas();
+                aplicarFiltros();
+            } else {
+                alert(data.message || 'Erro');
+            }
+        } catch (e) {
+            alert('Erro de conexão');
+        }
+    }
+
+    // ========== MODAL DETALHES ==========
+    function mostrarDetalhes(id) {
+        const insc = todasInscricoes.find(i => i.id === id);
+        if (!insc) return;
+        modalContent.innerHTML = `
+            <h3>📋 Detalhes da Inscrição</h3>
+            <div class="detail-row"><strong>ID:</strong><span>${insc.id}</span></div>
+            <div class="detail-row"><strong>Nome:</strong><span>${insc.nome}</span></div>
+            <div class="detail-row"><strong>Data Nasc.:</strong><span>${insc.nascimento}</span></div>
+            <div class="detail-row"><strong>Email:</strong><span>${insc.email}</span></div>
+            <div class="detail-row"><strong>Telefone:</strong><span>${insc.telefone}</span></div>
+            <div class="detail-row"><strong>Cidade:</strong><span>${insc.cidade}</span></div>
+            <div class="detail-row"><strong>Sit. Académica:</strong><span>${insc.situacaoAcademica}</span></div>
+            <div class="detail-row"><strong>Curso:</strong><span>${insc.curso}</span></div>
+            <div class="detail-row"><strong>Sit. Profissional:</strong><span>${insc.situacaoProfissional}</span></div>
+            <div class="detail-row"><strong>Origem:</strong><span>${insc.origem || '—'}</span></div>
+            <div class="detail-row"><strong>Estado:</strong><span class="estado-badge estado-${insc.estado.toLowerCase()}">${insc.estado}</span></div>
+            <div class="detail-row"><strong>CV:</strong>${insc.cvUrl ? `<a href="${insc.cvUrl}" target="_blank">📄 Ver currículo</a>` : '❌ Não disponível'}</div>
+            <div class="detail-row"><strong>BI:</strong>${insc.biUrl ? `<a href="${insc.biUrl}" target="_blank">🆔 Ver documento</a>` : '❌ Não disponível'}</div>
+            <button class="btn-close" onclick="fecharModal()">Fechar</button>
+        `;
+        modalDetalhes.classList.add('active');
+    }
+    function fecharModal() { modalDetalhes.classList.remove('active'); }
+    modalDetalhes.addEventListener('click', e => { if (e.target === modalDetalhes) fecharModal(); });
+
+    // Atualização automática a cada 2 minutos
+    setInterval(() => { if (dashboard.classList.contains('active')) carregarInscricoes(); }, 120000);
+</script>
+</body>
+</html>
