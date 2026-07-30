@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Formador – Atelier de Carreira</title>
+    <style>
+        :root {
+            --primary: #0a2f44;
+            --primary-light: #0f4a6b;
+            --accent: #d49b3b;
+            --accent-hover: #b8832a;
+            --bg: #f4f6f8;
+            --white: #ffffff;
+            --text: #1e1e1e;
+            --border: #d1d5db;
+            --success: #1e7a4b;
+            --danger: #c0392b;
+            --shadow: 0 6px 18px rgba(0,0,0,0.07);
+            --radius: 10px;
+            --font: 'Segoe UI', 'Inter', system-ui, sans-serif;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: var(--font); background: #f0f2f5; color: var(--text); min-height: 100vh; }
+        .login-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .login-card {
+            background: white; padding: 2.5rem 2rem; border-radius: 16px;
+            text-align: center; width: 90%; max-width: 380px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+        }
+        .login-card .logo-circle {
+            width: 60px; height: 60px; border-radius: 50%;
+            background: var(--primary-light); margin: 0 auto 1rem;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: bold; font-size: 1.5rem;
+        }
+        .login-card h2 { margin-bottom: 0.3rem; color: var(--primary); }
+        .login-card p { font-size: 0.85rem; color: #666; margin-bottom: 1.5rem; }
+        .login-card input {
+            width: 100%; padding: 0.8rem 1rem; border: 2px solid var(--border);
+            border-radius: 30px; font-size: 1rem; text-align: center; margin-bottom: 1rem;
+        }
+        .login-card button {
+            width: 100%; padding: 0.8rem; background: var(--accent);
+            color: #0a2f44; font-weight: 700; border: none;
+            border-radius: 30px; cursor: pointer; font-size: 1rem;
+            display: flex; align-items: center; justify-content: center;
+            gap: 0.5rem;
+        }
+        .login-card button:disabled { opacity: 0.7; cursor: not-allowed; }
+        .login-error { color: var(--danger); font-size: 0.85rem; margin-top: 0.5rem; display: none; }
+        .dashboard { display: none; }
+        .dashboard.active { display: block; padding: 2rem; max-width: 1300px; margin: 0 auto; }
+        .top-bar {
+            background: var(--primary); color: white; padding: 1rem 2rem;
+            display: flex; align-items: center; justify-content: space-between;
+            border-radius: var(--radius); margin-bottom: 2rem;
+            flex-wrap: wrap; gap: 1rem;
+        }
+        .top-bar h1 { font-size: 1.4rem; }
+        .btn-logout {
+            background: rgba(255,255,255,0.2); color: white;
+            border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1.3rem;
+            border-radius: 30px; cursor: pointer; font-weight: 600;
+        }
+        .filters-bar {
+            background: white; padding: 1rem 2rem; display: flex; gap: 1rem;
+            flex-wrap: wrap; align-items: center; border-radius: var(--radius);
+            margin-bottom: 1.5rem; box-shadow: var(--shadow);
+        }
+        .search-input {
+            flex: 1; min-width: 200px; padding: 0.5rem 1rem;
+            border: 1px solid var(--border); border-radius: 20px;
+            font-family: var(--font);
+        }
+        .btn-refresh {
+            background: var(--primary-light); color: white; border: none;
+            padding: 0.5rem 1.2rem; border-radius: 20px; cursor: pointer;
+            font-weight: 600;
+        }
+        .table-container {
+            background: white; border-radius: var(--radius); overflow-x: auto;
+            box-shadow: var(--shadow);
+        }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th {
+            background: var(--primary); color: white; padding: 0.8rem 1rem;
+            text-align: left; font-size: 0.85rem;
+        }
+        td { padding: 0.7rem 1rem; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; vertical-align: middle; }
+        .nota-icon-btn {
+            background: none; border: none; font-size: 1.5rem; cursor: pointer;
+            color: var(--primary); padding: 0.2rem 0.5rem;
+        }
+        .btn-salvar {
+            background: var(--success); color: white; border: none; padding: 0.4rem 1rem;
+            border-radius: 15px; cursor: pointer; font-weight: 600; font-size: 0.8rem;
+            margin-left: 5px;
+        }
+        .badge-avaliado {
+            display: inline-block; padding: 0.3rem 0.8rem; border-radius: 20px;
+            font-size: 0.78rem; font-weight: 600; background: #d1fae5; color: #065f46;
+        }
+        .empty-state { text-align: center; padding: 3rem; color: #999; }
+
+        /* Modal da nota */
+        .modal-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(3px);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: white; border-radius: 16px; padding: 2rem;
+            width: 90%; max-width: 500px; box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+        }
+        .modal-card h3 { color: var(--primary); margin-bottom: 1rem; }
+        .modal-card textarea {
+            width: 100%; height: 150px; padding: 1rem; border: 1px solid var(--border);
+            border-radius: var(--radius); font-family: var(--font); resize: vertical;
+        }
+        .modal-buttons { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; }
+        .btn { padding: 0.6rem 1.5rem; border-radius: 25px; cursor: pointer; font-weight: 600; border: none; }
+        .btn-guardar { background: var(--success); color: white; }
+        .btn-fechar { background: #e5e7eb; color: #333; }
+
+        @media (max-width: 768px) { .dashboard { padding: 1rem; } }
+    </style>
+</head>
+<body>
+
+<div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+        <div class="logo-circle">📝</div>
+        <h2>Painel do Formador</h2>
+        <p>Atelier de Carreira – AGETRHA</p>
+        <input type="password" id="senhaInput" placeholder="Senha de acesso" autofocus>
+        <button id="btnLogin">🔐 Entrar</button>
+        <p class="login-error" id="loginError">Senha inválida.</p>
+    </div>
+</div>
+
+<div class="dashboard" id="dashboard">
+    <div class="top-bar">
+        <h1>📋 Painel do Formador</h1>
+        <button class="btn-logout" id="btnLogout">Sair</button>
+    </div>
+    <div class="filters-bar">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Pesquisar por nome, curso...">
+        <button class="btn-refresh" id="btnRefresh">🔄 Atualizar</button>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Situação Académica</th>
+                    <th>Curso</th>
+                    <th>Situação Profissional</th>
+                    <th>CV</th>
+                    <th>Nota</th>
+                    <th>Avaliação</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr><td colspan="8" class="empty-state">Carregando...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL DA NOTA -->
+<div class="modal-overlay" id="modalNota">
+    <div class="modal-card">
+        <h3>📝 Nota do Candidato</h3>
+        <textarea id="notaTextarea" placeholder="Escreva aqui a nota..."></textarea>
+        <div class="modal-buttons">
+            <button class="btn btn-fechar" id="btnFecharModal">Fechar</button>
+            <button class="btn btn-guardar" id="btnGuardarNota">💾 Guardar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ⚠️ CONFIGURAÇÃO
+    const FORMADOR_GAS_URL = 'https://script.google.com/macros/s/AKfycby4faJ8lX_f3JOLY6-NiTHu4H1IrXkgd0RL9J97UIByXagEPCoAFmsKUMIWdp2t4-Ww/exec';
+    const AUTH_URL = 'https://script.google.com/macros/s/AKfycbxf8B6KNIGOtmrFHEL1GM0qFXNN4osAdo1iRsVDkVLZcY12-ZNTVoFf2jIvQaqbFS-5/exec';
+
+    let token = sessionStorage.getItem('formador_token') || '';
+    let todasInscricoes = [];
+    let currentIdNota = null;
+
+    const loginOverlay = document.getElementById('loginOverlay');
+    const dashboard = document.getElementById('dashboard');
+    const tableBody = document.getElementById('tableBody');
+    const searchInput = document.getElementById('searchInput');
+    const modalNota = document.getElementById('modalNota');
+    const notaTextarea = document.getElementById('notaTextarea');
+    const btnLogin = document.getElementById('btnLogin');
+
+    // ========== LOGIN ==========
+    async function fazerLogin(senha) {
+        document.getElementById('loginError').style.display = 'none';
+        if (!senha) return;
+        btnLogin.disabled = true;
+        btnLogin.innerHTML = '⏳ Aguarde...';
+        const formData = new FormData();
+        formData.append('action', 'validateDashboardPassword');
+        formData.append('password', senha);
+        formData.append('department', 'Atelier');
+        try {
+            const resp = await fetch(AUTH_URL, { method: 'POST', body: formData });
+            const data = await resp.json();
+            if (data.valid) {
+                token = senha;
+                sessionStorage.setItem('formador_token', token);
+                loginOverlay.style.display = 'none';
+                dashboard.classList.add('active');
+                carregarInscricoes();
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        } catch (e) {
+            document.getElementById('loginError').textContent = 'Erro de conexão.';
+            document.getElementById('loginError').style.display = 'block';
+        } finally {
+            btnLogin.disabled = false;
+            btnLogin.innerHTML = '🔐 Entrar';
+        }
+    }
+
+    btnLogin.addEventListener('click', () => {
+        fazerLogin(document.getElementById('senhaInput').value.trim());
+    });
+    document.getElementById('senhaInput').addEventListener('keypress', e => {
+        if (e.key === 'Enter') btnLogin.click();
+    });
+    document.getElementById('btnLogout').addEventListener('click', () => {
+        sessionStorage.removeItem('formador_token');
+        location.reload();
+    });
+    if (token) fazerLogin(token);
+
+    // ========== CARREGAR DADOS ==========
+    async function carregarInscricoes() {
+        tableBody.innerHTML = '<tr><td colspan="8" class="empty-state">Carregando...</td></tr>';
+        const formData = new FormData();
+        formData.append('action', 'listarInscricoesFormador');
+        formData.append('token', token);
+        try {
+            const resp = await fetch(FORMADOR_GAS_URL, { method: 'POST', body: formData });
+            const data = await resp.json();
+            if (data.success) {
+                todasInscricoes = data.inscricoes || [];
+                aplicarFiltros();
+            } else {
+                tableBody.innerHTML = `<tr><td colspan="8" class="empty-state">${data.message || 'Erro'}</td></tr>`;
+            }
+        } catch (e) {
+            tableBody.innerHTML = '<tr><td colspan="8" class="empty-state">Erro de rede</td></tr>';
+        }
+    }
+
+    document.getElementById('btnRefresh').addEventListener('click', carregarInscricoes);
+
+    // ========== PESQUISA ==========
+    searchInput.addEventListener('input', aplicarFiltros);
+
+    function aplicarFiltros() {
+        const termo = searchInput.value.toLowerCase().trim();
+        const filtradas = termo ?
+            todasInscricoes.filter(item =>
+                Object.values(item).join(' ').toLowerCase().includes(termo)
+            ) : todasInscricoes;
+        renderizarTabela(filtradas);
+    }
+
+    function renderizarTabela(inscricoes) {
+        if (!inscricoes.length) {
+            tableBody.innerHTML = '<tr><td colspan="8" class="empty-state">Nenhuma inscrição encontrada.</td></tr>';
+            return;
+        }
+        tableBody.innerHTML = inscricoes.map(insc => `
+            <tr>
+                <td>${insc.nome}</td>
+                <td>${insc.situacaoAcademica}</td>
+                <td>${insc.curso}</td>
+                <td>${insc.situacaoProfissional}</td>
+                <td>${insc.cvUrl ? `<a href="${insc.cvUrl}" target="_blank">📄</a>` : '—'}</td>
+                <td>
+                    <button class="nota-icon-btn" onclick="abrirModalNota('${insc.id}')" title="Editar nota">📝</button>
+                </td>
+                <td>${insc.avaliacao ? '<span class="badge-avaliado">AVALIADO</span>' : '—'}</td>
+                <td><button class="btn-salvar" onclick="abrirModalNota('${insc.id}')">💾 Guardar</button></td>
+            </tr>
+        `).join('');
+    }
+
+    // ========== MODAL DA NOTA ==========
+    function abrirModalNota(id) {
+        currentIdNota = id;
+        const insc = todasInscricoes.find(i => i.id === id);
+        notaTextarea.value = insc ? (insc.nota || '') : '';
+        modalNota.classList.add('active');
+    }
+
+    document.getElementById('btnFecharModal').addEventListener('click', () => {
+        modalNota.classList.remove('active');
+    });
+    modalNota.addEventListener('click', (e) => {
+        if (e.target === modalNota) modalNota.classList.remove('active');
+    });
+
+    // Guardar nota pelo modal
+    document.getElementById('btnGuardarNota').addEventListener('click', async () => {
+        if (!currentIdNota) return;
+        const nota = notaTextarea.value;
+        const formData = new FormData();
+        formData.append('action', 'salvarNota');
+        formData.append('token', token);
+        formData.append('id', currentIdNota);
+        formData.append('nota', nota);
+        try {
+            const resp = await fetch(FORMADOR_GAS_URL, { method: 'POST', body: formData });
+            const data = await resp.json();
+            if (data.success) {
+                const insc = todasInscricoes.find(i => i.id === currentIdNota);
+                if (insc) {
+                    insc.nota = nota;
+                    insc.avaliacao = 'AVALIADO';
+                }
+                aplicarFiltros();
+                modalNota.classList.remove('active');
+            } else {
+                alert('Erro: ' + (data.message || ''));
+            }
+        } catch (e) {
+            alert('Erro de conexão');
+        }
+    });
+
+    setInterval(() => { if (dashboard.classList.contains('active')) carregarInscricoes(); }, 180000);
+</script>
+</body>
+</html>
